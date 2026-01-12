@@ -259,7 +259,7 @@ export interface MerchantWithProducts extends Merchant {
   products: Product[]
 }
 
-export interface OrderWithDetails extends Order {
+export interface OrderWithDetails extends Omit<Order, 'driver'> {
   items: OrderItem[]
   driver: Driver | null
 }

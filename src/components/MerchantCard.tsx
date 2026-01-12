@@ -1,73 +1,97 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, Star, Truck } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import type { Merchant } from '@/data/mock-data'
+import { LoginPromptModal } from '@/components/LoginPromptModal'
+import type { Merchant } from '@/types/database'
 import { cn } from '@/lib/utils'
 
 interface MerchantCardProps {
   merchant: Merchant
-  areaId: string
+  areaSlug: string
 }
 
-export function MerchantCard({ merchant, areaId }: MerchantCardProps) {
+export function MerchantCard({ merchant, areaSlug }: MerchantCardProps) {
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Check if user is logged in (mock - always false for now)
+    const isLoggedIn = false
+    if (!isLoggedIn) {
+      setShowLoginModal(true)
+    } else {
+      setIsFavorite(!isFavorite)
+    }
+  }
+
   return (
-    <Link
-      to={`/area/${areaId}/merchant/${merchant.slug}`}
-      className={cn(
-        "group flex gap-4 rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md",
-        !merchant.isOpen && "opacity-60"
-      )}
-    >
-      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg">
-        <img
-          src={merchant.imageUrl}
-          alt={merchant.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        {!merchant.isOpen && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <Badge variant="secondary" className="bg-gray-800 text-white">
-              Cerrado
-            </Badge>
-          </div>
+    <>
+      <Link
+        to={`/area/${areaSlug}/merchant/${merchant.slug}`}
+        className={cn(
+          "group block overflow-hidden rounded-xl bg-white shadow-sm transition-all hover:shadow-md",
+          !merchant.is_open && "opacity-60"
         )}
-      </div>
+      >
+        {/* Image */}
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <img
+            src={merchant.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'}
+            alt={merchant.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          {!merchant.is_open && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <Badge variant="secondary" className="bg-gray-800 text-white text-sm px-3 py-1">
+                Cerrado
+              </Badge>
+            </div>
+          )}
+        </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold leading-tight group-hover:text-primary">
-            {merchant.name}
-          </h3>
-          <div className="flex items-center gap-1 text-sm">
-            <Star className="h-4 w-4 fill-primary text-primary" />
-            <span className="font-medium">{merchant.rating}</span>
-            <span className="text-muted-foreground">({merchant.reviewCount})</span>
+        {/* Content */}
+        <div className="p-4">
+          <div className="flex items-start justify-between">
+            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+              {merchant.name}
+            </h3>
+            <button
+              onClick={handleFavoriteClick}
+              className="ml-2 p-1 text-muted-foreground hover:text-red-500 transition-colors"
+              aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+            >
+              <Heart
+                className={cn(
+                  "h-5 w-5",
+                  isFavorite && "fill-red-500 text-red-500"
+                )}
+              />
+            </button>
+          </div>
+
+          {/* Tags */}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {merchant.tags?.slice(0, 2).map((tag) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="bg-gray-100 text-gray-600 text-xs font-normal"
+              >
+                {tag}
+              </Badge>
+            ))}
           </div>
         </div>
+      </Link>
 
-        <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-          {merchant.description}
-        </p>
-
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {merchant.tags.slice(0, 3).map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-
-        <div className="mt-auto flex items-center gap-4 pt-2 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {merchant.deliveryTime}
-          </span>
-          <span className="flex items-center gap-1">
-            <Truck className="h-3.5 w-3.5" />
-            ${merchant.deliveryFee.toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </Link>
+      <LoginPromptModal
+        open={showLoginModal}
+        onOpenChange={setShowLoginModal}
+        message="Para poder agregar favoritos, debes haber ingresado en tu cuenta. Si no tienes una cuenta existente, crea una a continuación."
+      />
+    </>
   )
 }
