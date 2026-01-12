@@ -32,6 +32,16 @@ CREATE TABLE areas (
 );
 
 -- ============================================
+-- MERCHANT CATEGORY TYPE
+-- ============================================
+CREATE TYPE merchant_category AS ENUM (
+  'restaurante',
+  'farmacia',
+  'tienda',
+  'otro'
+);
+
+-- ============================================
 -- MERCHANTS (Stores/Restaurants)
 -- ============================================
 CREATE TABLE merchants (
@@ -43,6 +53,7 @@ CREATE TABLE merchants (
   image_url TEXT,
   cover_url TEXT,
   tags TEXT[] DEFAULT '{}',
+  merchant_category merchant_category DEFAULT 'restaurante',
   rating DECIMAL(2,1) DEFAULT 0,
   review_count INTEGER DEFAULT 0,
   delivery_time TEXT,

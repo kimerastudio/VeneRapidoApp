@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Search, ChevronDown } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Search, ChevronDown, Check } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { MerchantCard } from '@/components/MerchantCard'
@@ -8,16 +8,30 @@ import { ExchangeRateBadge } from '@/components/ExchangeRateBadge'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { supabase } from '@/lib/supabase'
-import type { Merchant } from '@/types/database'
+import type { Merchant, Area, MerchantCategory } from '@/types/database'
 
-const filterTags = ['Restaurantes', 'Farmacias', 'Tiendas']
+// Filter categories matching merchant_category enum
+const filterCategories: { label: string; value: MerchantCategory | null }[] = [
+  { label: 'Restaurantes', value: 'restaurante' },
+  { label: 'Farmacias', value: 'farmacia' },
+  { label: 'Tiendas', value: 'tienda' },
+  { label: 'Otros', value: 'otro' },
+]
 
 export default function AreaPage() {
   const { areaId } = useParams<{ areaId: string }>()
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<MerchantCategory | null>(null)
   const [areaName, setAreaName] = useState<string>('')
+  const [allAreas, setAllAreas] = useState<Area[]>([])
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,6 +48,17 @@ export default function AreaPage() {
       }
 
       try {
+        // Fetch all areas for the dropdown
+        const { data: areasData, error: areasError } = await supabase
+          .from('areas')
+          .select('*')
+          .eq('is_active', true)
+          .order('name')
+
+        if (areasError) throw areasError
+        setAllAreas(areasData || [])
+
+        // Fetch current area data
         const { data: areaData, error: areaError } = await supabase
           .from('areas')
           .select('*')
@@ -69,6 +94,10 @@ export default function AreaPage() {
     }
   }, [areaId])
 
+  const handleAreaChange = (areaSlug: string) => {
+    navigate(`/area/${areaSlug}`)
+  }
+
   const filteredMerchants = merchants.filter((merchant) => {
     const matchesSearch =
       merchant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -77,7 +106,10 @@ export default function AreaPage() {
         tag.toLowerCase().includes(searchQuery.toLowerCase())
       )
 
-    return matchesSearch
+    const matchesCategory =
+      !selectedCategory || merchant.merchant_category === selectedCategory
+
+    return matchesSearch && matchesCategory
   })
 
   if (loading) {
@@ -130,22 +162,40 @@ export default function AreaPage() {
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {filteredMerchants.length} items
                 </span>
-                <div className="flex items-center gap-2 border-l pl-3">
-                  <span className="font-medium">{areaName || 'Punta de Mata'}</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </div>
+
+                {/* Area Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center gap-2 border-l pl-3 cursor-pointer hover:text-primary transition-colors">
+                    <span className="font-medium">{areaName || 'Seleccionar área'}</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {allAreas.map((area) => (
+                      <DropdownMenuItem
+                        key={area.id}
+                        onClick={() => handleAreaChange(area.slug)}
+                        className="flex items-center justify-between cursor-pointer"
+                      >
+                        <span>{area.name}</span>
+                        {area.slug === areaId && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
-              {/* Filter Tags */}
+              {/* Filter Categories */}
               <div className="mt-4 flex justify-center gap-2">
-                {filterTags.map((tag) => (
+                {filterCategories.map((category) => (
                   <Badge
-                    key={tag}
-                    variant={selectedTag === tag ? 'default' : 'outline'}
+                    key={category.label}
+                    variant={selectedCategory === category.value ? 'default' : 'outline'}
                     className="cursor-pointer px-4 py-1.5 text-sm font-normal transition-colors hover:bg-primary hover:text-primary-foreground"
-                    onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                    onClick={() => setSelectedCategory(selectedCategory === category.value ? null : category.value)}
                   >
-                    {tag}
+                    {category.label}
                   </Badge>
                 ))}
               </div>

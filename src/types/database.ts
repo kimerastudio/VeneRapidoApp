@@ -24,6 +24,12 @@ export type DeliveryMethod =
   | 'personal'
   | 'reception'
 
+export type MerchantCategory =
+  | 'restaurante'
+  | 'farmacia'
+  | 'tienda'
+  | 'otro'
+
 // ============================================
 // Database Tables
 // ============================================
@@ -49,6 +55,7 @@ export interface Merchant {
   image_url: string | null
   cover_url: string | null
   tags: string[]
+  merchant_category: MerchantCategory
   rating: number
   review_count: number
   delivery_time: string | null
