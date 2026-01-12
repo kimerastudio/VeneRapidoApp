@@ -10,7 +10,15 @@ import { ProductSheet } from '@/components/ProductSheet'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import type { Merchant, Category, Product } from '@/types/database'
+import type { Merchant, Category, Product, MerchantCategory } from '@/types/database'
+
+// Helper to convert merchant_category to display label
+const categoryLabels: Record<MerchantCategory, string> = {
+  restaurante: 'Restaurantes',
+  farmacia: 'Farmacias',
+  tienda: 'Tiendas',
+  otro: 'Otros',
+}
 
 export default function MerchantPage() {
   const { areaId, merchantSlug } = useParams<{ areaId: string; merchantSlug: string }>()
@@ -165,11 +173,16 @@ export default function MerchantPage() {
         <div className="bg-white py-4">
           <div className="container">
             <nav className="flex items-center gap-2 text-sm">
-              <Link to={`/area/${areaId}`} className="text-muted-foreground hover:text-foreground">
+              <Link to={`/area/${areaId}`} className="text-muted-foreground hover:text-foreground transition-colors">
                 {areaId?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </Link>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Restaurantes</span>
+              <Link
+                to={`/area/${areaId}?category=${merchant.merchant_category}`}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {categoryLabels[merchant.merchant_category] || 'Comercios'}
+              </Link>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{merchant.name}</span>
             </nav>

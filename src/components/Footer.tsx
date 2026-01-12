@@ -64,7 +64,7 @@ export function Footer() {
             <ul className="mt-4 space-y-3">
               <li>
                 <Link
-                  to="/registrar-comercio"
+                  to="/vende-rapido"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Registrar comercio
@@ -95,7 +95,7 @@ export function Footer() {
             <ul className="mt-4 space-y-3">
               <li>
                 <Link
-                  to="/repartidor"
+                  to="/reparte-con-nosotros"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Unirte como repartidor

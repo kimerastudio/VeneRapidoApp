@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, MapPin, Clock, Truck, ShieldCheck } from 'lucide-react'
 import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
 import { AreaCard } from '@/components/AreaCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -46,8 +47,9 @@ export default function LandingPage() {
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
+      <main className="flex-1">
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5">
@@ -160,25 +162,9 @@ export default function LandingPage() {
           )}
         </div>
       </section>
+      </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-muted/30 py-8">
-        <div className="container">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <MapPin className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="font-bold">
-                Vene<span className="text-primary">Rápido</span>
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © 2024 VeneRápido. Todos los derechos reservados.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

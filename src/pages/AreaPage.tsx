@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, ChevronDown, Check } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -28,13 +28,32 @@ const filterCategories: { label: string; value: MerchantCategory | null }[] = [
 export default function AreaPage() {
   const { areaId } = useParams<{ areaId: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<MerchantCategory | null>(null)
+
+  // Initialize category from URL query parameter
+  const initialCategory = searchParams.get('category') as MerchantCategory | null
+  const [selectedCategory, setSelectedCategory] = useState<MerchantCategory | null>(
+    initialCategory && ['restaurante', 'farmacia', 'tienda', 'otro'].includes(initialCategory)
+      ? initialCategory
+      : null
+  )
+
   const [areaName, setAreaName] = useState<string>('')
   const [allAreas, setAllAreas] = useState<Area[]>([])
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Update URL when category changes
+  const handleCategoryChange = (category: MerchantCategory | null) => {
+    setSelectedCategory(category)
+    if (category) {
+      setSearchParams({ category })
+    } else {
+      setSearchParams({})
+    }
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -193,7 +212,7 @@ export default function AreaPage() {
                     key={category.label}
                     variant={selectedCategory === category.value ? 'default' : 'outline'}
                     className="cursor-pointer px-4 py-1.5 text-sm font-normal transition-colors hover:bg-primary hover:text-primary-foreground"
-                    onClick={() => setSelectedCategory(selectedCategory === category.value ? null : category.value)}
+                    onClick={() => handleCategoryChange(selectedCategory === category.value ? null : category.value)}
                   >
                     {category.label}
                   </Badge>
