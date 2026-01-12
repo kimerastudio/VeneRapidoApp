@@ -10,69 +10,7 @@ import { ProductSheet } from '@/components/ProductSheet'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import {
-  merchants as mockMerchants,
-  categories as mockCategories,
-  products as mockProducts,
-} from '@/data/mock-data'
 import type { Merchant, Category, Product } from '@/types/database'
-
-// Convert mock data to database format
-function convertMockMerchant(m: typeof mockMerchants[0]): Merchant {
-  return {
-    id: m.id,
-    area_id: m.areaId,
-    name: m.name,
-    slug: m.slug,
-    description: m.description,
-    image_url: m.imageUrl,
-    cover_url: m.coverUrl,
-    tags: m.tags,
-    rating: m.rating,
-    review_count: m.reviewCount,
-    delivery_time: m.deliveryTime,
-    delivery_fee: m.deliveryFee,
-    is_open: m.isOpen,
-    is_open_override: null,
-    legal_name: null,
-    rif: null,
-    latitude: null,
-    longitude: null,
-    schedule: {},
-    payout_config: { method: 'pago_movil' },
-    email: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-}
-
-function convertMockCategory(c: typeof mockCategories[0]): Category {
-  return {
-    id: c.id,
-    merchant_id: c.merchantId,
-    name: c.name,
-    sort_order: 0,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  }
-}
-
-function convertMockProduct(p: typeof mockProducts[0]): Product {
-  return {
-    id: p.id,
-    merchant_id: p.merchantId,
-    category_id: p.categoryId,
-    name: p.name,
-    description: p.description,
-    price: p.price,
-    image_url: p.imageUrl,
-    is_available: p.available,
-    modifiers: {},
-    sort_order: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-}
 
 export default function MerchantPage() {
   const { areaId, merchantSlug } = useParams<{ areaId: string; merchantSlug: string }>()
@@ -82,67 +20,56 @@ export default function MerchantPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
+      setError(null)
 
-      // If Supabase is configured, try to fetch from database
-      if (supabase) {
-        try {
-          const { data: merchantData } = await supabase
-            .from('merchants')
-            .select('*')
-            .eq('slug', merchantSlug)
-            .single()
-
-          if (merchantData) {
-            setMerchant(merchantData)
-
-            const { data: categoriesData } = await supabase
-              .from('categories')
-              .select('*')
-              .eq('merchant_id', merchantData.id)
-              .eq('is_active', true)
-              .order('sort_order')
-
-            if (categoriesData) {
-              setCategories(categoriesData)
-            }
-
-            const { data: productsData } = await supabase
-              .from('products')
-              .select('*')
-              .eq('merchant_id', merchantData.id)
-              .eq('is_available', true)
-              .order('sort_order')
-
-            if (productsData) {
-              setProducts(productsData)
-            }
-
-            setLoading(false)
-            return
-          }
-        } catch (error) {
-          console.warn('Failed to fetch from Supabase, using mock data:', error)
-        }
+      if (!supabase) {
+        setError('La base de datos no está configurada')
+        setLoading(false)
+        return
       }
 
-      // Fallback to mock data
-      const mockMerchant = mockMerchants.find(m => m.slug === merchantSlug)
-      if (mockMerchant) {
-        setMerchant(convertMockMerchant(mockMerchant))
-        const merchantCategories = mockCategories
-          .filter(c => c.merchantId === mockMerchant.id)
-          .map(convertMockCategory)
-        setCategories(merchantCategories)
-        const merchantProducts = mockProducts
-          .filter(p => p.merchantId === mockMerchant.id)
-          .map(convertMockProduct)
-        setProducts(merchantProducts)
+      try {
+        const { data: merchantData, error: merchantError } = await supabase
+          .from('merchants')
+          .select('*')
+          .eq('slug', merchantSlug)
+          .single()
+
+        if (merchantError) throw merchantError
+
+        if (merchantData) {
+          setMerchant(merchantData)
+
+          const { data: categoriesData, error: categoriesError } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('merchant_id', merchantData.id)
+            .eq('is_active', true)
+            .order('sort_order')
+
+          if (categoriesError) throw categoriesError
+          setCategories(categoriesData || [])
+
+          const { data: productsData, error: productsError } = await supabase
+            .from('products')
+            .select('*')
+            .eq('merchant_id', merchantData.id)
+            .eq('is_available', true)
+            .order('sort_order')
+
+          if (productsError) throw productsError
+          setProducts(productsData || [])
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setError('Error al cargar el comercio')
       }
 
       setLoading(false)
@@ -189,6 +116,21 @@ export default function MerchantPage() {
         <div className="container py-12 text-center">
           <div className="animate-pulse">Cargando...</div>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container py-12 text-center">
+          <p className="text-red-600">{error}</p>
+          <Link to={`/area/${areaId}`} className="text-primary hover:underline mt-4 inline-block">
+            Volver al directorio
+          </Link>
+        </div>
+        <Footer />
       </div>
     )
   }

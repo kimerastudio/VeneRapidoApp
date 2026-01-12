@@ -9,39 +9,9 @@ import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import { areas as mockAreas, merchants as mockMerchants } from '@/data/mock-data'
 import type { Merchant } from '@/types/database'
 
 const filterTags = ['Restaurantes', 'Farmacias', 'Tiendas']
-
-// Convert mock data to database format
-function convertMockMerchant(m: typeof mockMerchants[0]): Merchant {
-  return {
-    id: m.id,
-    area_id: m.areaId,
-    name: m.name,
-    slug: m.slug,
-    description: m.description,
-    image_url: m.imageUrl,
-    cover_url: m.coverUrl,
-    tags: m.tags,
-    rating: m.rating,
-    review_count: m.reviewCount,
-    delivery_time: m.deliveryTime,
-    delivery_fee: m.deliveryFee,
-    is_open: m.isOpen,
-    is_open_override: null,
-    legal_name: null,
-    rif: null,
-    latitude: null,
-    longitude: null,
-    schedule: {},
-    payout_config: { method: 'pago_movil' },
-    email: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-}
 
 export default function AreaPage() {
   const { areaId } = useParams<{ areaId: string }>()
@@ -50,49 +20,45 @@ export default function AreaPage() {
   const [areaName, setAreaName] = useState<string>('')
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
+      setError(null)
 
-      // If Supabase is configured, try to fetch from database
-      if (supabase) {
-        try {
-          const { data: areaData } = await supabase
-            .from('areas')
-            .select('*')
-            .eq('slug', areaId)
-            .single()
-
-          if (areaData) {
-            setAreaName(areaData.name)
-
-            const { data: merchantsData } = await supabase
-              .from('merchants')
-              .select('*')
-              .eq('area_id', areaData.id)
-              .order('is_open', { ascending: false })
-              .order('rating', { ascending: false })
-
-            if (merchantsData && merchantsData.length > 0) {
-              setMerchants(merchantsData)
-              setLoading(false)
-              return
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to fetch from Supabase, using mock data:', error)
-        }
+      if (!supabase) {
+        setError('La base de datos no está configurada')
+        setLoading(false)
+        return
       }
 
-      // Fallback to mock data
-      const mockArea = mockAreas.find(a => a.id === areaId)
-      if (mockArea) {
-        setAreaName(mockArea.name)
-        const areaMerchants = mockMerchants
-          .filter(m => m.areaId === areaId)
-          .map(convertMockMerchant)
-        setMerchants(areaMerchants)
+      try {
+        const { data: areaData, error: areaError } = await supabase
+          .from('areas')
+          .select('*')
+          .eq('slug', areaId)
+          .single()
+
+        if (areaError) throw areaError
+
+        if (areaData) {
+          setAreaName(areaData.name)
+
+          const { data: merchantsData, error: merchantsError } = await supabase
+            .from('merchants')
+            .select('*')
+            .eq('area_id', areaData.id)
+            .order('is_open', { ascending: false })
+            .order('rating', { ascending: false })
+
+          if (merchantsError) throw merchantsError
+
+          setMerchants(merchantsData || [])
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setError('Error al cargar los comercios')
       }
 
       setLoading(false)
@@ -121,6 +87,18 @@ export default function AreaPage() {
         <div className="container py-12 text-center">
           <div className="animate-pulse">Cargando...</div>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container py-12 text-center">
+          <p className="text-red-600">{error}</p>
+        </div>
+        <Footer />
       </div>
     )
   }

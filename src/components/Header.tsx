@@ -22,16 +22,16 @@ export function Header() {
             VendeRápido
           </Link>
           <Link
+            to="/reparte-con-nosotros"
+            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+          >
+            Reparte con Nosotros
+          </Link>
+          <Link
             to="/ayuda"
             className="text-sm font-medium text-foreground hover:text-primary transition-colors"
           >
             Centro de Ayuda
-          </Link>
-          <Link
-            to="/contacto"
-            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-          >
-            Contact
           </Link>
         </nav>
 
