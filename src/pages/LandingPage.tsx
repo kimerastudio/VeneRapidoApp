@@ -1,13 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, MapPin, Clock, Truck, ShieldCheck } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { AreaCard } from '@/components/AreaCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { areas } from '@/data/mock-data'
+import { supabase } from '@/lib/supabase'
+import type { Area } from '@/types/database'
 
 export default function LandingPage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [areas, setAreas] = useState<Area[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchAreas() {
+      if (!supabase) {
+        setError('La base de datos no está configurada')
+        setLoading(false)
+        return
+      }
+
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('areas')
+          .select('*')
+          .eq('is_active', true)
+          .order('name')
+
+        if (fetchError) throw fetchError
+        setAreas(data || [])
+      } catch (err) {
+        console.error('Error fetching areas:', err)
+        setError('Error al cargar las áreas')
+      }
+      setLoading(false)
+    }
+
+    fetchAreas()
+  }, [])
 
   const filteredAreas = areas.filter(area =>
     area.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -101,7 +132,18 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {filteredAreas.length > 0 ? (
+          {loading ? (
+            <div className="py-12 text-center">
+              <div className="animate-pulse">Cargando áreas...</div>
+            </div>
+          ) : error ? (
+            <div className="py-12 text-center">
+              <p className="text-red-600">{error}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Por favor verifica que las variables de entorno estén configuradas en Vercel.
+              </p>
+            </div>
+          ) : filteredAreas.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filteredAreas.map((area) => (
                 <AreaCard key={area.id} area={area} />
