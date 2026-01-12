@@ -1,5 +1,7 @@
 # CLAUDE.md - VeneRápido Delivery Ecosystem
 
+Always prioritize using shadcn components for the frontend: https://ui.shadcn.com/
+
 ## Project Overview
 
 **Project Name:** VeneRápido Delivery Ecosystem
