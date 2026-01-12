@@ -10,7 +10,69 @@ import { ProductSheet } from '@/components/ProductSheet'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
+import {
+  merchants as mockMerchants,
+  categories as mockCategories,
+  products as mockProducts,
+} from '@/data/mock-data'
 import type { Merchant, Category, Product } from '@/types/database'
+
+// Convert mock data to database format
+function convertMockMerchant(m: typeof mockMerchants[0]): Merchant {
+  return {
+    id: m.id,
+    area_id: m.areaId,
+    name: m.name,
+    slug: m.slug,
+    description: m.description,
+    image_url: m.imageUrl,
+    cover_url: m.coverUrl,
+    tags: m.tags,
+    rating: m.rating,
+    review_count: m.reviewCount,
+    delivery_time: m.deliveryTime,
+    delivery_fee: m.deliveryFee,
+    is_open: m.isOpen,
+    is_open_override: null,
+    legal_name: null,
+    rif: null,
+    latitude: null,
+    longitude: null,
+    schedule: {},
+    payout_config: { method: 'pago_movil' },
+    email: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+}
+
+function convertMockCategory(c: typeof mockCategories[0]): Category {
+  return {
+    id: c.id,
+    merchant_id: c.merchantId,
+    name: c.name,
+    sort_order: 0,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  }
+}
+
+function convertMockProduct(p: typeof mockProducts[0]): Product {
+  return {
+    id: p.id,
+    merchant_id: p.merchantId,
+    category_id: p.categoryId,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    image_url: p.imageUrl,
+    is_available: p.available,
+    modifiers: {},
+    sort_order: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+}
 
 export default function MerchantPage() {
   const { areaId, merchantSlug } = useParams<{ areaId: string; merchantSlug: string }>()
@@ -27,39 +89,60 @@ export default function MerchantPage() {
     async function fetchData() {
       setLoading(true)
 
-      // Fetch merchant
-      const { data: merchantData } = await supabase
-        .from('merchants')
-        .select('*')
-        .eq('slug', merchantSlug)
-        .single()
+      // If Supabase is configured, try to fetch from database
+      if (supabase) {
+        try {
+          const { data: merchantData } = await supabase
+            .from('merchants')
+            .select('*')
+            .eq('slug', merchantSlug)
+            .single()
 
-      if (merchantData) {
-        setMerchant(merchantData)
+          if (merchantData) {
+            setMerchant(merchantData)
 
-        // Fetch categories
-        const { data: categoriesData } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('merchant_id', merchantData.id)
-          .eq('is_active', true)
-          .order('sort_order')
+            const { data: categoriesData } = await supabase
+              .from('categories')
+              .select('*')
+              .eq('merchant_id', merchantData.id)
+              .eq('is_active', true)
+              .order('sort_order')
 
-        if (categoriesData) {
-          setCategories(categoriesData)
+            if (categoriesData) {
+              setCategories(categoriesData)
+            }
+
+            const { data: productsData } = await supabase
+              .from('products')
+              .select('*')
+              .eq('merchant_id', merchantData.id)
+              .eq('is_available', true)
+              .order('sort_order')
+
+            if (productsData) {
+              setProducts(productsData)
+            }
+
+            setLoading(false)
+            return
+          }
+        } catch (error) {
+          console.warn('Failed to fetch from Supabase, using mock data:', error)
         }
+      }
 
-        // Fetch products
-        const { data: productsData } = await supabase
-          .from('products')
-          .select('*')
-          .eq('merchant_id', merchantData.id)
-          .eq('is_available', true)
-          .order('sort_order')
-
-        if (productsData) {
-          setProducts(productsData)
-        }
+      // Fallback to mock data
+      const mockMerchant = mockMerchants.find(m => m.slug === merchantSlug)
+      if (mockMerchant) {
+        setMerchant(convertMockMerchant(mockMerchant))
+        const merchantCategories = mockCategories
+          .filter(c => c.merchantId === mockMerchant.id)
+          .map(convertMockCategory)
+        setCategories(merchantCategories)
+        const merchantProducts = mockProducts
+          .filter(p => p.merchantId === mockMerchant.id)
+          .map(convertMockProduct)
+        setProducts(merchantProducts)
       }
 
       setLoading(false)

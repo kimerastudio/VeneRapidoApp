@@ -12,6 +12,8 @@ import type {
 // ============================================
 
 export async function getAreas(): Promise<Area[]> {
+  if (!supabase) return []
+
   const { data, error } = await supabase
     .from('areas')
     .select('*')
@@ -23,6 +25,8 @@ export async function getAreas(): Promise<Area[]> {
 }
 
 export async function getAreaBySlug(slug: string): Promise<Area | null> {
+  if (!supabase) return null
+
   const { data, error } = await supabase
     .from('areas')
     .select('*')
@@ -41,6 +45,8 @@ export async function getAreaBySlug(slug: string): Promise<Area | null> {
 // ============================================
 
 export async function getMerchantsByArea(areaId: string): Promise<Merchant[]> {
+  if (!supabase) return []
+
   const { data, error } = await supabase
     .from('merchants')
     .select('*')
@@ -53,6 +59,8 @@ export async function getMerchantsByArea(areaId: string): Promise<Merchant[]> {
 }
 
 export async function getMerchantBySlug(slug: string): Promise<Merchant | null> {
+  if (!supabase) return null
+
   const { data, error } = await supabase
     .from('merchants')
     .select('*')
@@ -71,6 +79,8 @@ export async function getMerchantBySlug(slug: string): Promise<Merchant | null> 
 // ============================================
 
 export async function getCategoriesByMerchant(merchantId: string): Promise<Category[]> {
+  if (!supabase) return []
+
   const { data, error } = await supabase
     .from('categories')
     .select('*')
@@ -83,6 +93,8 @@ export async function getCategoriesByMerchant(merchantId: string): Promise<Categ
 }
 
 export async function getProductsByMerchant(merchantId: string): Promise<Product[]> {
+  if (!supabase) return []
+
   const { data, error } = await supabase
     .from('products')
     .select('*')
@@ -99,6 +111,8 @@ export async function getProductsByMerchant(merchantId: string): Promise<Product
 // ============================================
 
 export async function getExchangeRate(): Promise<number> {
+  if (!supabase) return 282
+
   const { data, error } = await supabase
     .from('global_settings')
     .select('value')
@@ -116,6 +130,8 @@ export async function getExchangeRate(): Promise<number> {
 export function subscribeToExchangeRate(
   callback: (rate: number) => void
 ) {
+  if (!supabase) return null
+
   return supabase
     .channel('exchange_rate_changes')
     .on(
@@ -138,6 +154,8 @@ export function subscribeToMerchantStatus(
   areaId: string,
   callback: (merchant: Merchant) => void
 ) {
+  if (!supabase) return null
+
   return supabase
     .channel(`merchant_status_${areaId}`)
     .on(

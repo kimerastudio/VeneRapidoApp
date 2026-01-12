@@ -9,15 +9,45 @@ import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import type { Area, Merchant } from '@/types/database'
+import { areas as mockAreas, merchants as mockMerchants } from '@/data/mock-data'
+import type { Merchant } from '@/types/database'
 
 const filterTags = ['Restaurantes', 'Farmacias', 'Tiendas']
+
+// Convert mock data to database format
+function convertMockMerchant(m: typeof mockMerchants[0]): Merchant {
+  return {
+    id: m.id,
+    area_id: m.areaId,
+    name: m.name,
+    slug: m.slug,
+    description: m.description,
+    image_url: m.imageUrl,
+    cover_url: m.coverUrl,
+    tags: m.tags,
+    rating: m.rating,
+    review_count: m.reviewCount,
+    delivery_time: m.deliveryTime,
+    delivery_fee: m.deliveryFee,
+    is_open: m.isOpen,
+    is_open_override: null,
+    legal_name: null,
+    rif: null,
+    latitude: null,
+    longitude: null,
+    schedule: {},
+    payout_config: { method: 'pago_movil' },
+    email: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+}
 
 export default function AreaPage() {
   const { areaId } = useParams<{ areaId: string }>()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
-  const [area, setArea] = useState<Area | null>(null)
+  const [areaName, setAreaName] = useState<string>('')
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -25,27 +55,44 @@ export default function AreaPage() {
     async function fetchData() {
       setLoading(true)
 
-      // Fetch area
-      const { data: areaData } = await supabase
-        .from('areas')
-        .select('*')
-        .eq('slug', areaId)
-        .single()
+      // If Supabase is configured, try to fetch from database
+      if (supabase) {
+        try {
+          const { data: areaData } = await supabase
+            .from('areas')
+            .select('*')
+            .eq('slug', areaId)
+            .single()
 
-      if (areaData) {
-        setArea(areaData)
+          if (areaData) {
+            setAreaName(areaData.name)
 
-        // Fetch merchants for this area
-        const { data: merchantsData } = await supabase
-          .from('merchants')
-          .select('*')
-          .eq('area_id', areaData.id)
-          .order('is_open', { ascending: false })
-          .order('rating', { ascending: false })
+            const { data: merchantsData } = await supabase
+              .from('merchants')
+              .select('*')
+              .eq('area_id', areaData.id)
+              .order('is_open', { ascending: false })
+              .order('rating', { ascending: false })
 
-        if (merchantsData) {
-          setMerchants(merchantsData)
+            if (merchantsData && merchantsData.length > 0) {
+              setMerchants(merchantsData)
+              setLoading(false)
+              return
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to fetch from Supabase, using mock data:', error)
         }
+      }
+
+      // Fallback to mock data
+      const mockArea = mockAreas.find(a => a.id === areaId)
+      if (mockArea) {
+        setAreaName(mockArea.name)
+        const areaMerchants = mockMerchants
+          .filter(m => m.areaId === areaId)
+          .map(convertMockMerchant)
+        setMerchants(areaMerchants)
       }
 
       setLoading(false)
@@ -106,7 +153,7 @@ export default function AreaPage() {
                   {filteredMerchants.length} items
                 </span>
                 <div className="flex items-center gap-2 border-l pl-3">
-                  <span className="font-medium">{area?.name || 'Punta de Mata'}</span>
+                  <span className="font-medium">{areaName || 'Punta de Mata'}</span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>

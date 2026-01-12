@@ -5,9 +5,11 @@ export function ExchangeRateBadge() {
   const [rate, setRate] = useState<number>(282)
 
   useEffect(() => {
+    if (!supabase) return
+
     // Fetch initial rate
     async function fetchRate() {
-      const { data } = await supabase
+      const { data } = await supabase!
         .from('global_settings')
         .select('value')
         .eq('key', 'exchange_rate')
@@ -39,7 +41,7 @@ export function ExchangeRateBadge() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase?.removeChannel(channel)
     }
   }, [])
 
